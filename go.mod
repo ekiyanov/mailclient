@@ -1,4 +1,4 @@
-module github.com/ekiyanov/mailclient
+module github.com/ekiyanov/mailerclient
 
 go 1.17
 
