@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -18,6 +19,30 @@ type MailClient struct {
 	from      string
 	templates map[string]*template.Template
 	dialer    *gomail.Dialer
+
+	templatesSrcDir string
+}
+
+type Opts struct {
+	Username string
+	Password string
+	Host     string
+	Port     int
+
+	TemplatesDir string
+}
+
+func NewMailClientWithOpts(opts Opts) *MailClient {
+
+	dialer := gomail.NewDialer(opts.Host,
+		opts.Port,
+		opts.Username,
+		opts.Password)
+
+	return &MailClient{
+		dialer:          dialer,
+		templatesSrcDir: opts.TemplatesDir,
+	}
 }
 
 func NewMailClient() *MailClient {
@@ -30,11 +55,14 @@ func NewMailClient() *MailClient {
 		port = 587
 	}
 
-	dialer := gomail.NewDialer(host, int(port), username, password)
+	return NewMailClientWithOpts(Opts{
+		Username:     username,
+		Password:     password,
+		Host:         host,
+		Port:         int(port),
+		TemplatesDir: "/templates",
+	})
 
-	return &MailClient{
-		dialer: dialer,
-	}
 }
 
 func SharedMailClient() *MailClient {
@@ -77,7 +105,8 @@ func (mc *MailClient) Send(to, subject string, templateName string, templateCont
 	tmpl := mc.templates[templateName]
 
 	if tmpl == nil {
-		tmpl = template.Must(template.ParseFiles("/templates/" + templateName))
+		templatepath := filepath.Join(mc.templatesSrcDir, templateName)
+		tmpl = template.Must(template.ParseFiles(templatepath))
 		mc.templates[templateName] = tmpl
 	}
 
